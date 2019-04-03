@@ -17,7 +17,7 @@ app.post('/webhook', line.middleware(setting.config), (req, res) => {
 });
 
 const client = new line.Client(setting.config);
-function handleEvent(event) {
+const handleEvent = event => {
   // console.log(event);
   //メッセージでなかったらnullを返して終了
   if (event.type !== 'message') {
@@ -48,13 +48,9 @@ function handleEvent(event) {
       packageId: 2,
       stickerId: 163,
     });
-    
   }
-
-
-    
-
 }
+
 
 app.listen(PORT);
 console.log(`Server running at ${PORT}`);
