@@ -4,6 +4,8 @@ const line = require('@line/bot-sdk');
 const PORT = process.env.PORT || 3000;
 //キーを別ファイルから読み込み
 const setting = require('./setting');
+//形態素解析の読み込み
+const kuromoji = require('kuromoji');
 
 const app = express();
 //middleware: Expressの関数 req,resを呼び出すときに使う
@@ -16,9 +18,9 @@ app.post('/webhook', line.middleware(setting.config), (req, res) => {
     .then((result) => res.json(result));
 });
 
+
 const client = new line.Client(setting.config);
 const handleEvent = event => {
-  // console.log(event);
   //メッセージでなかったらnullを返して終了
   if (event.type !== 'message') {
     //スタンプでもテキストでもなかったらnullを返す
@@ -28,20 +30,70 @@ const handleEvent = event => {
   }
 
   if(event.message.type === 'text') {
-
+    
     let replyText = '';
-    if(event.message.text === 'こんにちは') {
-      replyText = 'こんばんはの時間ですよ';
-    } else {
-      replyText = 'うざ';
+
+    //形態素解析の辞書の設定
+    const builder = kuromoji.builder({
+      dicPath: 'node_modules/kuromoji/dict/'
+    });
+
+    //形態素解析する関数
+    const analysis = (err, tokenizer) => {
+
+        if(err) { throw err; }
+        let string = event.message.text;
+        let result = string.split(/\s+/);
+        let path = new Array();
+        for(let i = 0; i < result.length; i++) {
+            path[i] = tokenizer.tokenize(result[i]);
+        }
+        for(let i = 0; i < path.length; i++) {
+          for(let j = 0; j < path[i].length; j++) {
+              replyText += path[i][j].surface_form + ':' +path[i][j].pos+ ':' +path[i][j].pos_detail_1+'\t';
+          }
+        }
+        console.log(replyText + 'ビルド部分');
+        reply();
+
     }
 
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: replyText,
-    });
+    // これをどうにかする(実行する関数?)
+    builder.build(analysis);
+
+    
+
+    //返信する
+    const reply = () => {
+
+      console.log(replyText+ '返信部分');
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: replyText,
+      });
     
   }
+
+  // const kaiseki = () => {
+  //   builder.build(analysis);
+    //return replyText;
+  //   reply();
+  // }
+  // kaiseki();
+
+  /*
+    const exec = () =>{
+    Promise
+    .all(kaiseki())
+    .then(reply());
+    }
+    exec();
+    */
+
+
+    //ここまで
+  }
+
 
   if(event.message.type === 'sticker') {
     return client.replyMessage(event.replyToken, {
