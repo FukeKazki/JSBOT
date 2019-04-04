@@ -40,6 +40,7 @@ const handleEvent = event => {
       type: 'text',
       text: replyText,
     });
+    
   }
 
   if(event.message.type === 'sticker') {
@@ -49,6 +50,7 @@ const handleEvent = event => {
       stickerId: 163,
     });
   }
+
 }
 
 
