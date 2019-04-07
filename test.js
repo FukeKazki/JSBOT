@@ -75,6 +75,8 @@ const handleEvent = event => {
 
     }
 
+    //Promisで非同期処理が終わるまでawitする
+
     //ここまで
   }
 
