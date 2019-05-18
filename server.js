@@ -10,7 +10,7 @@ const kuromoji = require('kuromoji');
 const app = express();
 //middleware: Expressの関数 req,resを呼び出すときに使う
 app.post('/webhook', line.middleware(setting.config), (req, res) => {
-  //Promese: 非同期処理 callback地獄を避ける
+  //Promise: 非同期処理 callback地獄を避ける
   Promise
     //all: 非同期処理が成功した場合にcallbackする 引数は監視するオブジェクト郡(配列)  
     .all(req.body.events.map(handleEvent))
@@ -44,7 +44,7 @@ const handleEvent = event => {
         if(err) { throw err; }
         let string = event.message.text;
         let result = string.split(/\s+/);
-        let path = new Array();
+        let path = [];
         let replyText = '';
         for(let i = 0; i < result.length; i++) {
             path[i] = tokenizer.tokenize(result[i]);
