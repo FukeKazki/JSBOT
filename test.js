@@ -10,7 +10,7 @@ const kuromoji = require('kuromoji');
 const app = express();
 //middleware: Expressの関数 req,resを呼び出すときに使う
 app.post('/webhook', line.middleware(setting.config), (req, res) => {
-  //Promese: 非同期処理 callback地獄を避ける
+  //Promise: 非同期処理 callback地獄を避ける
   Promise
     //all: 非同期処理が成功した場合にcallbackする 引数は監視するオブジェクト郡(配列)  
     .all(req.body.events.map(handleEvent))
@@ -38,42 +38,42 @@ const handleEvent = event => {
       dicPath: 'node_modules/kuromoji/dict/'
     });
 
+
     //形態素解析する関数
-    const analysis = (err, tokenizer) => {
+    const analysis = async(err, tokenizer) => {
 
         if(err) { throw err; }
-        let string = event.message.text;
-        let result = string.split(/\s+/);
-        let path = new Array();
-        let replyText = '';
-        for(let i = 0; i < result.length; i++) {
-            path[i] = tokenizer.tokenize(result[i]);
-        }
-        for(let i = 0; i < path.length; i++) {
-          for(let j = 0; j < path[i].length; j++) {
-              replyText += path[i][j].surface_form + '\t' +path[i][j].pos+ ':' +path[i][j].pos_detail_1+'\n';
-          }
-        }
-        console.log(replyText + 'ビルド部分');
+        await new Promise(resolve => {
+            let string = event.message.text;
+            let result = string.split(/\s+/);
+            let path = [];
+            // let replyText = '';
+            for(let i = 0; i < result.length; i++) {
+                path[i] = tokenizer.tokenize(result[i]);
+            }
+            for(let i = 0; i < path.length; i++) {
+                for(let j = 0; j < path[i].length; j++) {
+                    replyText += path[i][j].surface_form + '\t' +path[i][j].pos+ ':' +path[i][j].pos_detail_1+'\n';
+                }
+            }
+            console.log(replyText + 'ビルド部分');
+            resolve();
+        });
         reply();
 
-    }
-
+    };
     // これをどうにかする(実行する関数?)
     builder.build(analysis);
+      //返信する
+      const reply = () => {
 
-    
+          console.log(replyText + '返信部分');
+          return client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: replyText,
+          });
 
-    //返信する
-    const reply = () => {
-
-        console.log(replyText+ '返信部分');
-        return client.replyMessage(event.replyToken, {
-          type: 'text',
-          text: replyText,
-        });
-
-    }
+      };
 
     //Promisで非同期処理が終わるまでawitする
 
