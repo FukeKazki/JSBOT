@@ -1,15 +1,15 @@
-const express = require('express');
+import express from 'express';
 const line = require('@line/bot-sdk');
 //ポートの制御
 const PORT = process.env.PORT || 3000;
 //キーを別ファイルから読み込み
-const setting = require('./setting');
+import config  from './setting';
 //形態素解析の読み込み
-const kuromoji = require('kuromoji');
+import kuromoji from 'kuromoji';
 
 const app = express();
 //middleware: Expressの関数 req,resを呼び出すときに使う
-app.post('/webhook', line.middleware(setting.config), (req, res) => {
+app.post('/webhook', line.middleware(config), (req, res) => {
     //Promise: 非同期処理 callback地獄を避ける
     Promise
     //all: 非同期処理が成功した場合にcallbackする 引数は監視するオブジェクト郡(配列)  
@@ -19,7 +19,7 @@ app.post('/webhook', line.middleware(setting.config), (req, res) => {
 });
 
 
-const client = new line.Client(setting.config);
+const client = new line.Client(config);
 const handleEvent = event => {
     //メッセージでなかったらnullを返して終了
     if (event.type !== 'message') {
