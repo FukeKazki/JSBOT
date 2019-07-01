@@ -1,94 +1,112 @@
-const express = require('express');
-const line = require('@line/bot-sdk');
+import express from 'express';
+import * as line from '@line/bot-sdk';
 //ポートの制御
 const PORT = process.env.PORT || 3000;
 //キーを別ファイルから読み込み
-const setting = require('./setting');
+import config  from './setting';
 //形態素解析の読み込み
-const kuromoji = require('kuromoji');
+import kuromoji from 'kuromoji';
 
 const app = express();
 //middleware: Expressの関数 req,resを呼び出すときに使う
-app.post('/webhook', line.middleware(setting.config), (req, res) => {
-  //Promise: 非同期処理 callback地獄を避ける
-  Promise
-    //all: 非同期処理が成功した場合にcallbackする 引数は監視するオブジェクト郡(配列)  
-    .all(req.body.events.map(handleEvent))
-    //全部成功->thenを実行 resultをjson形式で戻す
-    .then((result) => res.json(result));
+app.post('/webhook', line.middleware(config), (req, res) => {
+    console.log(req.body.events);
+    Promise
+    //all: 非同期処理が成功した場合にcallbackする 引数は監視するオブジェクト郡(配列)
+        .all(req.body.events.map(handleEvent))
+        //全部成功->thenを実行 resultをjson形式で戻す
+        .then((result) => {
+            console.log(result);
+            res.json(result);
+        });
 });
 
 
-const client = new line.Client(setting.config);
+const client = new line.Client(config);
 const handleEvent = event => {
-  //メッセージでなかったらnullを返して終了
-  if (event.type !== 'message') {
-    //スタンプでもテキストでもなかったらnullを返す
-    if(event.message.type !== 'sticker' && event.message.type !== 'text') {
-      return Promise.resolve(null);
+    //メッセージでなかったらnullを返して終了
+    if (event.type !== 'message') {
+        //スタンプでもテキストでもなかったらnullを返す
+        if(event.message.type !== 'sticker' && event.message.type !== 'text') {
+            return Promise.resolve(null);
+        }
     }
-  }
 
-  if(event.message.type === 'text') {
-    
-    let replyText = '';
-
-    //形態素解析の辞書の設定
-    const builder = kuromoji.builder({
-      dicPath: 'node_modules/kuromoji/dict/'
-    });
-
-    //形態素解析する関数
-    const analysis = (err, tokenizer) => {
-
-        if(err) { throw err; }
-        let string = event.message.text;
-        let result = string.split(/\s+/);
-        let path = [];
+    if(event.message.type === 'text') {
+        if(event.message.text === '大園桃子') {
+            return client.replyMessage(event.replyToken, {
+                "type": "image",
+                "originalContentUrl": "https://img.nogizaka46.com/blog/momoko.oozono/img/2019/02/05/6738863/0000.jpeg",
+                "previewImageUrl": "https://i.daily.jp/gossip/2019/04/17/Images/12249930.jpg"
+            });
+        }
+        switch (event.message.text) {
+            case 'ガウスの法則':
+                return client.replyMessage(event.replyToken, {
+                    type: 'text',
+                    text: '閉曲面を貫いて出ていく電気力線の総本数は閉曲面が内包する電荷の総和に比例する.',
+                });
+            case '電界':
+                return client.replyMessage(event.replyToken, {
+                    type: 'text',
+                    text: 'ある空間に仮に+1[c]の電荷を置いたとき, その空間に働く力の大きさがその空間における電界の大きさである.',
+                });
+            case '電気力線':
+                return client.replyMessage(event.replyToken, {
+                    type: 'text',
+                    text: '電気力線の特徴\n・電気力線上の各点の接点はその点の電界方向である.\n・電気力線の密度は各点の電界の強さに比例する.\n・電気力線は正電荷で発生し, 負電荷で消滅する.',
+                });
+        }
         let replyText = '';
-        for(let i = 0; i < result.length; i++) {
-            path[i] = tokenizer.tokenize(result[i]);
-        }
-        for(let i = 0; i < path.length; i++) {
-          for(let j = 0; j < path[i].length; j++) {
-              replyText += path[i][j].surface_form + '\t' +path[i][j].pos+ ':' +path[i][j].pos_detail_1+'\n';
-          }
-        }
-        console.log(replyText + 'ビルド部分');
-        reply();
 
-    }
-
-    // これをどうにかする(実行する関数?)
-    builder.build(analysis);
-
-    
-
-    //返信する
-    const reply = () => {
-
-        console.log(replyText+ '返信部分');
-        return client.replyMessage(event.replyToken, {
-          type: 'text',
-          text: replyText,
+        //形態素解析の辞書の設定
+        const builder = kuromoji.builder({
+            dicPath: 'node_modules/kuromoji/dict/'
         });
 
+        const exec = async() => {
+            await new Promise(resolve => {
+                builder.build((err, tokenizer) => {
+                    if(err) { throw err; }
+                    let string = event.message.text;
+                    let result = string.split(/\s+/);
+                    let path = [];
+                    // let replyText = '';
+                    for(let i = 0; i < result.length; i++) {
+                        path[i] = tokenizer.tokenize(result[i]);
+                    }
+                    for(let i = 0; i < path.length; i++) {
+                        for(let j = 0; j < path[i].length; j++) {
+                            replyText += path[i][j].surface_form + '\t' +path[i][j].pos+ ':' +path[i][j].pos_detail_1+'\n';
+                        }
+                    }
+                    resolve();
+                });
+            });
+            await new Promise(resolve => {
+                return client.replyMessage(event.replyToken, {
+                    type: 'text',
+                    text: replyText,
+                });
+            });
+        };
+        exec();
+
+        //ここまで
     }
 
-    //ここまで
-  }
 
-
-  if(event.message.type === 'sticker') {
-    return client.replyMessage(event.replyToken, {
-      type: 'sticker',
-      packageId: 2,
-      stickerId: 163,
-    });
-  }
+    if(event.message.type === 'sticker') {
+        return client.replyMessage(event.replyToken, {
+            type: 'sticker',
+            packageId: 2,
+            stickerId: 163,
+        });
+    }
 
 }
 
 
 app.listen(PORT);
 console.log(`Server running at ${PORT}`);
+//Memo: 起動コマンド babel-node test.js
